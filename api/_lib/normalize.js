@@ -56,6 +56,10 @@ export function runQa(records) {
   const seen = new Set();
   const byMonth = new Map();
 
+  if (!records.length) {
+    issues.push(blocking("no_records", "沒有讀到可同步資料", "Drive Excel 沒有產生任何資料列，請確認檔案權限、Sheet 月份名稱與欄位標題"));
+  }
+
   for (const row of records) {
     const key = `${row.month}::${row.code}::${row.course}`;
     if (seen.has(key)) issues.push(blocking("duplicate_record", "資料重複", `${row.month} ${row.code} ${row.course} 重複出現`));
