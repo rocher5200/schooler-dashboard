@@ -1,8 +1,9 @@
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
-import { neon } from "@neondatabase/serverless";
+import { recordSyncRun, replaceChangedMonths } from "../api/_lib/db.js";
 
-if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
+if (!process.env.FORMAL_DATA_SPREADSHEET_ID) throw new Error("FORMAL_DATA_SPREADSHEET_ID is required");
+if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON is required");
 
 const source = await fs.readFile(new URL("../sales-data.js", import.meta.url), "utf8");
 const json = source.replace(/^\s*window\.SALES_DATA\s*=\s*/, "").replace(/;\s*$/, "");
@@ -22,24 +23,23 @@ const rows = JSON.parse(json).map((row) => {
   };
 });
 
-const sql = neon(process.env.DATABASE_URL);
-for (const row of rows) {
-  await sql`
-    insert into dashboard_records (month, code, course, price, quantity, paid, refunds, source_hash, updated_at)
-    values (${row.month}, ${row.code}, ${row.course}, ${row.price}, ${row.quantity}, ${row.paid}, ${row.refunds}, ${row.sourceHash}, now())
-    on conflict (month, code, course) do update set
-      price = excluded.price,
-      quantity = excluded.quantity,
-      paid = excluded.paid,
-      refunds = excluded.refunds,
-      source_hash = excluded.source_hash,
-      updated_at = now()
-  `;
-}
+const months = [...new Set(rows.map((row) => row.month))].sort();
+await replaceChangedMonths(rows, months);
+await recordSyncRun({
+  status: "published",
+  startedAt: new Date().toISOString(),
+  finishedAt: new Date().toISOString(),
+  summary: {
+    addedMonths: months,
+    changedMonths: months,
+    newCourses: [],
+    newCourseCount: 0,
+    paidDelta: rows.reduce((sum, row) => sum + row.paid, 0),
+    refundDelta: 0,
+    netPaidDelta: rows.reduce((sum, row) => sum + row.paid, 0),
+    recordCount: rows.length
+  },
+  qa: { issues: [] }
+});
 
-await sql`
-  insert into sync_runs (status, started_at, finished_at, changed_months, record_count, qa, summary_text)
-  values ('published', now(), now(), ${JSON.stringify([...new Set(rows.map((row) => row.month))].sort())}::jsonb, ${rows.length}, '{"issues":[]}'::jsonb, ${`initial seed from sales-data.js: ${rows.length} records`})
-`;
-
-console.log(`Seeded ${rows.length} dashboard records.`);
+console.log(`Seeded ${rows.length} dashboard records into Google Sheets.`);
