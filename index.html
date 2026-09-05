@@ -15,6 +15,7 @@
       --green: #287a48;
       --red: #bc5141;
       --gold: #b9842f;
+      --blue: #3267a8;
     }
     * { box-sizing: border-box; }
     body {
@@ -25,6 +26,7 @@
     }
     button, input, select { font: inherit; }
     button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
     .shell { width: min(1440px, 100%); margin: 0 auto; padding: 28px; }
     .topbar {
       display: flex;
@@ -41,7 +43,7 @@
       letter-spacing: 0;
       text-transform: uppercase;
     }
-    h1, h2, p { margin-top: 0; }
+    h1, h2, h3, p { margin-top: 0; }
     h1 {
       margin-bottom: 0;
       font-size: clamp(2.15rem, 5vw, 4.6rem);
@@ -49,12 +51,13 @@
       letter-spacing: 0;
     }
     h2 { margin-bottom: 0; font-size: 1rem; }
+    h3 { margin: 0 0 10px; font-size: .95rem; }
     .controls {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
       justify-content: end;
-      min-width: min(560px, 100%);
+      min-width: min(620px, 100%);
     }
     .control {
       min-height: 44px;
@@ -75,6 +78,17 @@
       color: var(--ink);
     }
     .control input { min-width: 245px; }
+    .button {
+      min-height: 44px;
+      border: 1px solid var(--ink);
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      padding: 0 14px;
+      font-weight: 850;
+    }
+    .button.secondary { background: var(--paper); color: var(--ink); border-color: var(--line); }
+    .button.danger { background: var(--red); border-color: var(--red); }
     .kpis {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -95,9 +109,6 @@
       gap: 10px;
     }
     .kpi .label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
       color: var(--muted);
       font-size: .9rem;
       font-weight: 750;
@@ -107,17 +118,35 @@
       line-height: 1.15;
       overflow-wrap: anywhere;
     }
+    .sync-panel { margin-bottom: 18px; padding: 18px; display: none; }
+    .sync-panel.open { display: block; }
+    .sync-grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
+    .sync-actions { display: grid; gap: 10px; }
+    .sync-token { width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 8px; padding: 0 12px; background: #fff; }
+    .steps { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .steps li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid #ece6dc; border-radius: 8px; background: #faf7ef; }
+    .badge { display: inline-flex; align-items: center; min-height: 24px; border-radius: 999px; padding: 0 9px; color: #fff; background: var(--muted); font-size: .78rem; font-weight: 900; white-space: nowrap; }
+    .badge.ok { background: var(--green); }
+    .badge.warn { background: var(--gold); }
+    .badge.fail { background: var(--red); }
+    .badge.info { background: var(--blue); }
+    .preview-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .preview-item { border: 1px solid #ece6dc; border-radius: 8px; padding: 12px; background: #faf7ef; }
+    .preview-item span { display: block; color: var(--muted); font-size: .78rem; font-weight: 800; }
+    .preview-item strong { display: block; margin-top: 6px; overflow-wrap: anywhere; }
+    .issues { display: grid; gap: 8px; margin-top: 12px; }
+    .issue { border-left: 5px solid var(--gold); background: #fff8e8; padding: 10px 12px; border-radius: 6px; }
+    .issue.blocking { border-color: var(--red); background: #fff0ee; }
+    .history { margin-top: 14px; display: grid; gap: 8px; max-height: 220px; overflow: auto; }
+    .history-row { display: grid; grid-template-columns: 150px 90px 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid #ece6dc; font-size: .9rem; }
     .layout {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 18px;
       margin-bottom: 18px;
     }
-    .panel { padding: 18px; }
-    .video-panel {
-      margin-bottom: 18px;
-      padding: 18px;
-    }
+    .panel, .video-panel, .table-card { padding: 18px; }
+    .video-panel { margin-bottom: 18px; }
     .panel-heading {
       display: flex;
       align-items: center;
@@ -125,160 +154,50 @@
       gap: 12px;
       margin-bottom: 16px;
     }
-    .video-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-      margin-bottom: 16px;
-    }
-    .video-metric {
-      min-height: 104px;
-      border: 1px solid #e2dacc;
-      border-radius: 8px;
-      background: #f9f6ed;
-      padding: 16px;
-      display: grid;
-      gap: 8px;
-    }
-    .video-metric span {
-      color: var(--muted);
-      font-size: .88rem;
-      font-weight: 750;
-    }
-    .video-metric strong {
-      font-size: clamp(1.25rem, 2vw, 1.8rem);
-      overflow-wrap: anywhere;
-    }
-    .video-table-wrap {
-      overflow-x: auto;
-      max-height: 320px;
-    }
-    .trend {
-      height: 286px;
-      display: grid;
-      grid-auto-flow: column;
-      grid-auto-columns: minmax(72px, 1fr);
-      gap: 14px;
-      align-items: end;
-      overflow-x: auto;
-      padding: 8px 4px 0;
-    }
-    .trend-item {
-      height: 100%;
-      display: grid;
-      grid-template-rows: 1fr auto auto;
-      gap: 8px;
-      text-align: center;
-    }
-    .bar {
-      position: relative;
-      height: 100%;
-      border-radius: 8px;
-      background: #eef1ec;
-      overflow: hidden;
-    }
-    .paid-bar, .qty-bar {
-      position: absolute;
-      bottom: 0;
-      border-radius: 8px 8px 0 0;
-    }
-    .paid-bar {
-      left: 16%;
-      width: 48%;
-      background: linear-gradient(180deg, #5eb0a6, #216d66);
-    }
-    .qty-bar {
-      right: 14%;
-      width: 20%;
-      background: var(--gold);
-    }
+    .video-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 16px; }
+    .video-metric { min-height: 104px; border: 1px solid #e2dacc; border-radius: 8px; background: #f9f6ed; padding: 16px; display: grid; gap: 8px; }
+    .video-metric span { color: var(--muted); font-size: .88rem; font-weight: 750; }
+    .video-metric strong { font-size: clamp(1.25rem, 2vw, 1.8rem); overflow-wrap: anywhere; }
+    .video-table-wrap, .table-wrap { overflow-x: auto; }
+    .video-table-wrap { max-height: 320px; }
+    .table-wrap { max-height: 560px; }
+    .trend { height: 286px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(72px, 1fr); gap: 14px; align-items: end; overflow-x: auto; padding: 8px 4px 0; }
+    .trend-item { height: 100%; display: grid; grid-template-rows: 1fr auto auto; gap: 8px; text-align: center; }
+    .bar { position: relative; height: 100%; border-radius: 8px; background: #eef1ec; overflow: hidden; }
+    .paid-bar, .qty-bar { position: absolute; bottom: 0; border-radius: 8px 8px 0 0; }
+    .paid-bar { left: 16%; width: 48%; background: linear-gradient(180deg, #5eb0a6, #216d66); }
+    .qty-bar { right: 14%; width: 20%; background: var(--gold); }
     .trend-item strong { font-size: .9rem; }
-    .trend-item small { color: var(--muted); }
-    .ranking {
-      display: grid;
-      gap: 12px;
-      max-height: 340px;
-      overflow: auto;
-      padding-right: 4px;
-    }
-    .rank-row {
-      display: grid;
-      grid-template-columns: 36px 1fr auto;
-      gap: 12px;
-      align-items: start;
-      padding-bottom: 12px;
-      border-bottom: 1px solid #ece6dc;
-    }
-    .rank {
-      display: grid;
-      place-items: center;
-      width: 36px;
-      height: 36px;
-      border-radius: 999px;
-      background: var(--ink);
-      color: #fff;
-      font-weight: 900;
-    }
+    .trend-item small, .status { color: var(--muted); }
+    .status { font-size: .9rem; line-height: 1.5; }
+    .ranking { display: grid; gap: 12px; max-height: 340px; overflow: auto; padding-right: 4px; }
+    .rank-row { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: start; padding-bottom: 12px; border-bottom: 1px solid #ece6dc; }
+    .rank { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 999px; background: var(--ink); color: #fff; font-weight: 900; }
     .rank-row strong, .rank-row small { display: block; }
     .rank-row strong { line-height: 1.35; }
     .rank-row small { color: var(--muted); margin-top: 4px; }
     .money { text-align: right; font-weight: 900; white-space: nowrap; }
-    .track {
-      grid-column: 2 / -1;
-      height: 8px;
-      border-radius: 999px;
-      overflow: hidden;
-      background: #e4ded2;
-    }
-    .track span {
-      display: block;
-      height: 100%;
-      border-radius: inherit;
-      background: var(--teal);
-    }
-    .table-card { padding: 18px; }
-    .table-wrap { overflow-x: auto; max-height: 560px; }
+    .track { grid-column: 2 / -1; height: 8px; border-radius: 999px; overflow: hidden; background: #e4ded2; }
+    .track span { display: block; height: 100%; border-radius: inherit; background: var(--teal); }
     table { width: 100%; border-collapse: collapse; min-width: 820px; }
-    th, td {
-      padding: 13px 10px;
-      border-bottom: 1px solid #ece6dc;
-      text-align: left;
-      vertical-align: top;
-    }
-    th {
-      position: sticky;
-      top: 0;
-      z-index: 1;
-      background: var(--paper);
-      color: #53605a;
-      font-size: .82rem;
-      white-space: nowrap;
-    }
+    th, td { padding: 13px 10px; border-bottom: 1px solid #ece6dc; text-align: left; vertical-align: top; }
+    th { position: sticky; top: 0; z-index: 1; background: var(--paper); color: #53605a; font-size: .82rem; white-space: nowrap; }
     td { font-weight: 650; }
     td.num { text-align: right; white-space: nowrap; }
-    .status {
-      color: var(--muted);
-      font-size: .9rem;
-      line-height: 1.5;
-    }
-    .empty {
-      padding: 24px;
-      color: var(--muted);
-      text-align: center;
-    }
+    .empty { padding: 24px; color: var(--muted); text-align: center; }
     @media (max-width: 1080px) {
       .topbar { align-items: stretch; flex-direction: column; }
       .controls { justify-content: start; }
-      .kpis, .layout { grid-template-columns: 1fr 1fr; }
-      .video-grid { grid-template-columns: 1fr 1fr; }
+      .kpis, .layout, .sync-grid { grid-template-columns: 1fr 1fr; }
+      .video-grid, .preview-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 720px) {
       .shell { padding: 16px; }
-      .kpis, .layout { grid-template-columns: 1fr; }
-      .video-grid { grid-template-columns: 1fr; }
+      .kpis, .layout, .sync-grid, .video-grid, .preview-grid { grid-template-columns: 1fr; }
       .control, .control select, .control input { width: 100%; min-width: 0; }
       .rank-row { grid-template-columns: 36px 1fr; }
       .money { grid-column: 2; text-align: left; }
+      .history-row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -296,114 +215,101 @@
         <label class="control">搜尋
           <input id="searchBox" type="search" placeholder="輸入課程名稱或培訓代碼">
         </label>
+        <button id="syncToggle" class="button secondary" type="button">更新資料</button>
+      </div>
+    </section>
+
+    <section id="syncPanel" class="card sync-panel" aria-label="資料同步">
+      <div class="panel-heading">
+        <h2>資料同步</h2>
+        <span id="syncStatus" class="status">從 Google Drive Excel 讀取、比對、QA，確認後寫入正式資料層。</span>
+      </div>
+      <div class="sync-grid">
+        <div class="sync-actions">
+          <input id="syncToken" class="sync-token" type="password" placeholder="同步管理密碼">
+          <button id="previewButton" class="button" type="button">讀取 Drive 並產生預覽</button>
+          <button id="publishButton" class="button" type="button" disabled>確認更新正式資料</button>
+          <button id="historyButton" class="button secondary" type="button">重新整理同步紀錄</button>
+          <ul class="steps" aria-label="同步步驟">
+            <li><span>讀取 Drive</span><b id="stepDrive" class="badge">待執行</b></li>
+            <li><span>比對資料</span><b id="stepDiff" class="badge">待執行</b></li>
+            <li><span>QA 檢查</span><b id="stepQa" class="badge">待執行</b></li>
+            <li><span>寫入資料層</span><b id="stepPublish" class="badge">待確認</b></li>
+            <li><span>更新看板</span><b id="stepDashboard" class="badge">待執行</b></li>
+          </ul>
+        </div>
+        <div>
+          <div id="previewResult" class="empty">尚未產生更新預覽</div>
+          <div id="syncHistory" class="history"></div>
+        </div>
       </div>
     </section>
 
     <section class="kpis" aria-label="績效摘要">
-      <article class="card kpi">
-        <span class="label">總繳費金額</span>
-        <strong id="totalPaid"></strong>
-      </article>
-      <article class="card kpi">
-        <span class="label">總銷售數量</span>
-        <strong id="totalQty"></strong>
-      </article>
-      <article class="card kpi">
-        <span class="label">有繳費課程數</span>
-        <strong id="activeCourses"></strong>
-      </article>
-      <article class="card kpi">
-        <span class="label">最高繳費課程</span>
-        <strong id="topCourse"></strong>
-      </article>
+      <article class="card kpi"><span class="label">總繳費金額</span><strong id="totalPaid"></strong></article>
+      <article class="card kpi"><span class="label">總銷售數量</span><strong id="totalQty"></strong></article>
+      <article class="card kpi"><span class="label">有繳費課程數</span><strong id="activeCourses"></strong></article>
+      <article class="card kpi"><span class="label">最高繳費課程</span><strong id="topCourse"></strong></article>
     </section>
 
     <section class="card video-panel" aria-label="影音課程銷售">
-      <div class="panel-heading">
-        <h2>影音課程銷售</h2>
-        <span id="videoStatus" class="status"></span>
-      </div>
+      <div class="panel-heading"><h2>影音課程銷售</h2><span id="videoStatus" class="status"></span></div>
       <div class="video-grid">
-        <article class="video-metric">
-          <span>影音課程銷售數量</span>
-          <strong id="videoQty"></strong>
-        </article>
-        <article class="video-metric">
-          <span>影音課程繳費金額</span>
-          <strong id="videoPaid"></strong>
-        </article>
-        <article class="video-metric">
-          <span>影音課程分潤金額</span>
-          <strong id="videoShare"></strong>
-        </article>
+        <article class="video-metric"><span>影音課程銷售數量</span><strong id="videoQty"></strong></article>
+        <article class="video-metric"><span>影音課程繳費金額</span><strong id="videoPaid"></strong></article>
+        <article class="video-metric"><span>影音課程分潤金額</span><strong id="videoShare"></strong></article>
       </div>
       <div class="video-table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>培訓代碼</th>
-              <th>培訓課程</th>
-              <th>銷售數量</th>
-              <th>繳費金額</th>
-              <th>分潤金額</th>
-            </tr>
-          </thead>
-          <tbody id="videoRows"></tbody>
-        </table>
+        <table><thead><tr><th>培訓代碼</th><th>培訓課程</th><th>銷售數量</th><th>繳費金額</th><th>分潤金額</th></tr></thead><tbody id="videoRows"></tbody></table>
       </div>
     </section>
 
     <section class="layout">
       <div class="card panel">
-        <div class="panel-heading">
-          <h2>月份趨勢</h2>
-          <span class="status">綠色：繳費金額｜金色：銷售數量</span>
-        </div>
+        <div class="panel-heading"><h2>月份趨勢</h2><span class="status">綠色：繳費金額｜金色：銷售數量</span></div>
         <div id="trend" class="trend"></div>
       </div>
-
       <div class="card panel">
-        <div class="panel-heading">
-          <h2>課程排行榜</h2>
-          <span id="rankStatus" class="status"></span>
-        </div>
+        <div class="panel-heading"><h2>課程排行榜</h2><span id="rankStatus" class="status"></span></div>
         <div id="ranking" class="ranking"></div>
       </div>
     </section>
 
     <section class="card table-card">
-      <div class="panel-heading">
-        <h2>明細資料</h2>
-        <span id="detailStatus" class="status"></span>
-      </div>
+      <div class="panel-heading"><h2>明細資料</h2><span id="detailStatus" class="status"></span></div>
       <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>月份</th>
-              <th>培訓代碼</th>
-              <th>培訓課程</th>
-              <th>銷售數量</th>
-              <th>繳費金額</th>
-            </tr>
-          </thead>
-          <tbody id="detailRows"></tbody>
-        </table>
+        <table><thead><tr><th>月份</th><th>培訓代碼</th><th>培訓課程</th><th>銷售數量</th><th>繳費金額</th></tr></thead><tbody id="detailRows"></tbody></table>
       </div>
     </section>
   </main>
 
-  <script src="./sales-data.js"></script>
   <script>
-    const data = Array.isArray(window.SALES_DATA) ? window.SALES_DATA : [];
+    let data = [];
+    let latestPreview = null;
     const monthFilter = document.getElementById("monthFilter");
     const searchBox = document.getElementById("searchBox");
-    const money = new Intl.NumberFormat("zh-TW", {
-      style: "currency",
-      currency: "TWD",
-      maximumFractionDigits: 0
-    });
+    const syncPanel = document.getElementById("syncPanel");
+    const money = new Intl.NumberFormat("zh-TW", { style: "currency", currency: "TWD", maximumFractionDigits: 0 });
     const number = new Intl.NumberFormat("zh-TW");
+
+    async function requestJson(url, options = {}) {
+      const headers = { ...(options.headers || {}) };
+      const token = document.getElementById("syncToken").value.trim();
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const response = await fetch(url, { ...options, headers });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.error || "請求失敗");
+      return payload;
+    }
+
+    async function loadDashboard() {
+      setSyncStatus("讀取正式資料層中...");
+      const payload = await requestJson("/api/dashboard-data");
+      data = Array.isArray(payload.rows) ? payload.rows : [];
+      renderMonths();
+      render();
+      setSyncStatus(payload.lastSync ? `資料已載入，最近同步：${formatDate(payload.lastSync.finished_at || payload.lastSync.started_at)}` : "資料已載入，尚未有同步紀錄");
+    }
 
     function byFilters(row) {
       const monthOk = monthFilter.value === "all" || row.month === monthFilter.value;
@@ -416,22 +322,19 @@
       const map = new Map();
       rows.forEach((row) => {
         const key = row.code + "::" + row.course;
-        const item = map.get(key) || { code: row.code, course: row.course, quantity: 0, paid: 0, share: 0 };
+        const item = map.get(key) || { code: row.code, course: row.course, quantity: 0, paid: 0, refunds: 0, netPaid: 0, share: 0 };
         item.quantity += Number(row.quantity) || 0;
         item.paid += Number(row.paid) || 0;
+        item.refunds += Number(row.refunds) || 0;
+        item.netPaid += Number(row.netPaid ?? row.net_paid ?? ((Number(row.paid) || 0) - (Number(row.refunds) || 0))) || 0;
         item.share += getShare(row);
         map.set(key, item);
       });
-      return [...map.values()].sort((a, b) => b.paid - a.paid || b.quantity - a.quantity);
+      return [...map.values()].sort((a, b) => b.netPaid - a.netPaid || b.quantity - a.quantity);
     }
 
-    function isVideoCourse(row) {
-      return row.course.includes("菜鳥救星-(影)");
-    }
-
-    function getShare(row) {
-      return (Number(row.quantity) || 0) * (Number(row.price) || 0) * 0.3;
-    }
+    function isVideoCourse(row) { return row.course.includes("菜鳥救星-(影)"); }
+    function getShare(row) { return (Number(row.quantity) || 0) * (Number(row.price) || 0) * 0.3; }
 
     function groupMonths(rows) {
       const months = [...new Set(data.map((row) => row.month))].sort();
@@ -439,30 +342,31 @@
         const monthRows = rows.filter((row) => row.month === month);
         return {
           month,
-          paid: monthRows.reduce((sum, row) => sum + row.paid, 0),
-          quantity: monthRows.reduce((sum, row) => sum + row.quantity, 0)
+          paid: monthRows.reduce((sum, row) => sum + (Number(row.paid) || 0), 0),
+          refunds: monthRows.reduce((sum, row) => sum + (Number(row.refunds) || 0), 0),
+          quantity: monthRows.reduce((sum, row) => sum + (Number(row.quantity) || 0), 0)
         };
       });
     }
 
     function renderMonths() {
+      const currentValue = monthFilter.value || "all";
       const months = [...new Set(data.map((row) => row.month))].sort();
       monthFilter.innerHTML = '<option value="all">全部月份</option>' + months.map((m) => `<option value="${m}">${m}</option>`).join("");
+      monthFilter.value = months.includes(currentValue) ? currentValue : "all";
     }
 
     function render() {
       const rows = data.filter(byFilters);
       const grouped = groupCourses(rows);
-      const positive = grouped.filter((row) => row.paid > 0);
-      const totalPaid = rows.reduce((sum, row) => sum + row.paid, 0);
-      const totalQty = rows.reduce((sum, row) => sum + row.quantity, 0);
+      const positive = grouped.filter((row) => row.netPaid > 0);
+      const totalPaid = rows.reduce((sum, row) => sum + (Number(row.netPaid ?? row.paid) || 0), 0);
+      const totalQty = rows.reduce((sum, row) => sum + (Number(row.quantity) || 0), 0);
       const top = positive[0];
-
       document.getElementById("totalPaid").textContent = money.format(totalPaid);
       document.getElementById("totalQty").textContent = `${number.format(totalQty)} 件`;
       document.getElementById("activeCourses").textContent = `${number.format(positive.length)} 門`;
       document.getElementById("topCourse").textContent = top ? top.course : "無資料";
-
       renderVideoCourses(rows);
       renderTrend(rows);
       renderRanking(positive);
@@ -471,87 +375,131 @@
 
     function renderVideoCourses(rows) {
       const videoRows = groupCourses(rows.filter(isVideoCourse));
-      const positiveVideoRows = videoRows.filter((row) => row.quantity > 0 || row.paid > 0 || row.share > 0);
+      const positiveVideoRows = videoRows.filter((row) => row.quantity > 0 || row.netPaid > 0 || row.share > 0);
       const totalQty = positiveVideoRows.reduce((sum, row) => sum + row.quantity, 0);
-      const totalPaid = positiveVideoRows.reduce((sum, row) => sum + row.paid, 0);
+      const totalPaid = positiveVideoRows.reduce((sum, row) => sum + row.netPaid, 0);
       const totalShare = positiveVideoRows.reduce((sum, row) => sum + row.share, 0);
-
       document.getElementById("videoQty").textContent = `${number.format(totalQty)} 件`;
       document.getElementById("videoPaid").textContent = money.format(totalPaid);
       document.getElementById("videoShare").textContent = money.format(totalShare);
       document.getElementById("videoStatus").textContent = `分潤 = 銷售數量 × 售價 × 30%，顯示 ${number.format(positiveVideoRows.length)} 門`;
       document.getElementById("videoRows").innerHTML = positiveVideoRows.length ? positiveVideoRows.map((row) => `
-        <tr>
-          <td>${escapeHtml(row.code)}</td>
-          <td>${escapeHtml(row.course)}</td>
-          <td class="num">${number.format(row.quantity)}</td>
-          <td class="num">${money.format(row.paid)}</td>
-          <td class="num">${money.format(row.share)}</td>
-        </tr>
+        <tr><td>${escapeHtml(row.code)}</td><td>${escapeHtml(row.course)}</td><td class="num">${number.format(row.quantity)}</td><td class="num">${money.format(row.netPaid)}</td><td class="num">${money.format(row.share)}</td></tr>
       `).join("") : '<tr><td colspan="5" class="empty">沒有符合條件的影音課程銷售資料</td></tr>';
     }
 
     function renderTrend(rows) {
       const trend = groupMonths(rows);
-      const maxPaid = Math.max(...trend.map((item) => item.paid), 1);
+      const maxPaid = Math.max(...trend.map((item) => item.paid - item.refunds), 1);
       const maxQty = Math.max(...trend.map((item) => item.quantity), 1);
-      document.getElementById("trend").innerHTML = trend.map((item) => `
-        <div class="trend-item">
-          <div class="bar" title="${item.month}：${money.format(item.paid)} / ${number.format(item.quantity)} 件">
-            <span class="paid-bar" style="height:${Math.max(item.paid / maxPaid * 100, item.paid ? 7 : 0)}%"></span>
-            <span class="qty-bar" style="height:${Math.max(item.quantity / maxQty * 100, item.quantity ? 7 : 0)}%"></span>
-          </div>
-          <strong>${item.month.slice(5)}</strong>
-          <small>${money.format(item.paid)}</small>
-        </div>
-      `).join("");
+      document.getElementById("trend").innerHTML = trend.map((item) => {
+        const net = item.paid - item.refunds;
+        return `<div class="trend-item"><div class="bar" title="${item.month}：${money.format(net)} / ${number.format(item.quantity)} 件"><span class="paid-bar" style="height:${Math.max(net / maxPaid * 100, net ? 7 : 0)}%"></span><span class="qty-bar" style="height:${Math.max(item.quantity / maxQty * 100, item.quantity ? 7 : 0)}%"></span></div><strong>${item.month.slice(5)}</strong><small>${money.format(net)}</small></div>`;
+      }).join("");
     }
 
     function renderRanking(rows) {
       const topRows = rows.slice(0, 30);
-      const maxPaid = Math.max(...topRows.map((item) => item.paid), 1);
+      const maxPaid = Math.max(...topRows.map((item) => item.netPaid), 1);
       document.getElementById("rankStatus").textContent = `顯示前 ${number.format(topRows.length)} 名`;
       document.getElementById("ranking").innerHTML = topRows.length ? topRows.map((item, index) => `
-        <div class="rank-row">
-          <span class="rank">${index + 1}</span>
-          <div>
-            <strong>${escapeHtml(item.course)}</strong>
-            <small>${item.code} · 銷售 ${number.format(item.quantity)} 件</small>
-          </div>
-          <div class="money">${money.format(item.paid)}</div>
-          <div class="track"><span style="width:${Math.max(item.paid / maxPaid * 100, 4)}%"></span></div>
-        </div>
+        <div class="rank-row"><span class="rank">${index + 1}</span><div><strong>${escapeHtml(item.course)}</strong><small>${escapeHtml(item.code)} · 銷售 ${number.format(item.quantity)} 件</small></div><div class="money">${money.format(item.netPaid)}</div><div class="track"><span style="width:${Math.max(item.netPaid / maxPaid * 100, 4)}%"></span></div></div>
       `).join("") : '<div class="empty">沒有符合條件的繳費課程</div>';
     }
 
     function renderDetails(rows) {
-      const sorted = [...rows].sort((a, b) => a.month.localeCompare(b.month) || b.paid - a.paid);
+      const sorted = [...rows].sort((a, b) => a.month.localeCompare(b.month) || (b.netPaid ?? b.paid) - (a.netPaid ?? a.paid));
       document.getElementById("detailStatus").textContent = `共 ${number.format(sorted.length)} 筆，包含繳費金額為 0 的課程`;
       document.getElementById("detailRows").innerHTML = sorted.map((row) => `
-        <tr>
-          <td>${row.month}</td>
-          <td>${escapeHtml(row.code)}</td>
-          <td>${escapeHtml(row.course)}</td>
-          <td class="num">${number.format(row.quantity)}</td>
-          <td class="num">${money.format(row.paid)}</td>
-        </tr>
+        <tr><td>${row.month}</td><td>${escapeHtml(row.code)}</td><td>${escapeHtml(row.course)}</td><td class="num">${number.format(row.quantity)}</td><td class="num">${money.format(row.netPaid ?? row.paid)}</td></tr>
       `).join("");
     }
 
-    function escapeHtml(value) {
-      return String(value).replace(/[&<>"']/g, (char) => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-      }[char]));
+    async function previewSync() {
+      setSteps("info", "info", "info", "", "");
+      setSyncStatus("讀取 Google Drive Excel 並比對資料中...");
+      document.getElementById("publishButton").disabled = true;
+      latestPreview = await requestJson("/api/sync/preview", { method: "POST" });
+      renderPreview(latestPreview);
+      setSteps("ok", "ok", latestPreview.blocking ? "fail" : "ok", latestPreview.blocking ? "fail" : "warn", "");
+      document.getElementById("publishButton").disabled = !!latestPreview.blocking;
+      setSyncStatus(latestPreview.blocking ? "QA 發現重大異常，已停止發布。" : "預覽完成，確認後即可寫入正式資料層。");
+      await loadHistory();
     }
 
-    renderMonths();
-    render();
+    async function publishSync() {
+      if (!latestPreview || latestPreview.blocking) return;
+      setSyncStatus("寫入正式資料層中...");
+      setSteps("ok", "ok", "ok", "info", "info");
+      const result = await requestJson("/api/sync/publish", { method: "POST" });
+      latestPreview = null;
+      document.getElementById("publishButton").disabled = true;
+      renderPreview(result);
+      setSteps("ok", "ok", "ok", "ok", "ok");
+      await loadDashboard();
+      await loadHistory();
+      setSyncStatus("資料更新完成，看板已重新載入正式資料。");
+    }
+
+    function renderPreview(payload) {
+      const summary = payload.summary || {};
+      const issues = payload.qa?.issues || payload.issues || [];
+      const statusBadge = payload.blocking ? '<span class="badge fail">停止發布</span>' : '<span class="badge ok">可發布</span>';
+      document.getElementById("previewResult").innerHTML = `
+        <div class="panel-heading"><h3>更新預覽 ${statusBadge}</h3><span class="status">${formatDate(payload.startedAt || payload.finishedAt || new Date().toISOString())}</span></div>
+        <div class="preview-grid">
+          <div class="preview-item"><span>新增月份</span><strong>${list(summary.addedMonths)}</strong></div>
+          <div class="preview-item"><span>修改月份</span><strong>${list(summary.changedMonths)}</strong></div>
+          <div class="preview-item"><span>新增課程</span><strong>${number.format(summary.newCourseCount || 0)} 門</strong></div>
+          <div class="preview-item"><span>淨業績變化</span><strong>${money.format(summary.netPaidDelta || 0)}</strong></div>
+          <div class="preview-item"><span>業績變化</span><strong>${money.format(summary.paidDelta || 0)}</strong></div>
+          <div class="preview-item"><span>退費變化</span><strong>${money.format(summary.refundDelta || 0)}</strong></div>
+          <div class="preview-item"><span>資料筆數</span><strong>${number.format(summary.recordCount || 0)} 筆</strong></div>
+          <div class="preview-item"><span>QA 結果</span><strong>${issues.length ? `${number.format(issues.length)} 項` : "通過"}</strong></div>
+        </div>
+        <div class="issues">${issues.length ? issues.map((issue) => `<div class="issue ${issue.severity === "blocking" ? "blocking" : ""}"><strong>${escapeHtml(issue.title || issue.code || "資料異常")}</strong><br><span>${escapeHtml(issue.message || "")}</span></div>`).join("") : '<div class="issue"><strong>QA 通過</strong><br><span>未發現需要停止發布的重大異常。</span></div>'}</div>
+      `;
+    }
+
+    async function loadHistory() {
+      const payload = await requestJson("/api/sync/history");
+      const runs = payload.runs || [];
+      document.getElementById("syncHistory").innerHTML = runs.length ? runs.map((run) => `
+        <div class="history-row"><span>${formatDate(run.started_at)}</span><span class="badge ${run.status === "published" ? "ok" : run.status === "blocked" || run.status === "failed" ? "fail" : "info"}">${escapeHtml(run.status)}</span><span>${escapeHtml(run.summary_text || "")}</span></div>
+      `).join("") : '<div class="empty">尚無同步紀錄</div>';
+    }
+
+    function setSteps(drive, diff, qa, publish, dashboard) {
+      setStep("stepDrive", drive);
+      setStep("stepDiff", diff);
+      setStep("stepQa", qa);
+      setStep("stepPublish", publish);
+      setStep("stepDashboard", dashboard);
+    }
+
+    function setStep(id, state) {
+      const el = document.getElementById(id);
+      const labels = { ok: "完成", fail: "停止", warn: "待確認", info: "執行中" };
+      el.className = `badge ${state || ""}`;
+      el.textContent = labels[state] || "待執行";
+    }
+
+    function setSyncStatus(message) { document.getElementById("syncStatus").textContent = message; }
+    function list(values) { return Array.isArray(values) && values.length ? values.join("、") : "無"; }
+    function formatDate(value) { return value ? new Intl.DateTimeFormat("zh-TW", { dateStyle: "short", timeStyle: "short" }).format(new Date(value)) : ""; }
+    function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char])); }
+
+    document.getElementById("syncToggle").addEventListener("click", () => syncPanel.classList.toggle("open"));
+    document.getElementById("previewButton").addEventListener("click", () => previewSync().catch((error) => { setSteps("fail", "fail", "fail", "", ""); setSyncStatus(error.message); }));
+    document.getElementById("publishButton").addEventListener("click", () => publishSync().catch((error) => { setSteps("ok", "ok", "ok", "fail", ""); setSyncStatus(error.message); }));
+    document.getElementById("historyButton").addEventListener("click", () => loadHistory().catch((error) => setSyncStatus(error.message)));
     monthFilter.addEventListener("change", render);
     searchBox.addEventListener("input", render);
+
+    loadDashboard().then(loadHistory).catch((error) => {
+      setSyncStatus(error.message);
+      document.getElementById("detailRows").innerHTML = '<tr><td colspan="5" class="empty">正式資料層尚未設定或目前無法讀取</td></tr>';
+    });
   </script>
 </body>
 </html>
