@@ -1,16 +1,18 @@
 # 正式上線檢查清單
 
-## 1. 資料庫
+## 1. 正式 Google Sheets
 
-- 建立 Neon Postgres project。
-- 在 Neon SQL Editor 執行 `db/schema.sql`。
-- 確認 `dashboard_records` 與 `sync_runs` 已建立。
-- 複製 pooled connection string，填入 Vercel `DATABASE_URL`。
+- 建立一份新的 Google Sheets，例如 `Schooler Dashboard Formal Data`。
+- 將這份正式 Google Sheets 分享給 service account email，權限設為編輯者。
+- 從 Sheets URL 複製 spreadsheet ID，填入 Vercel `FORMAL_DATA_SPREADSHEET_ID`。
+- 不需要手動建立分頁，API 會自動建立：
+  - `DashboardRecords`
+  - `SyncRuns`
 
-## 2. Google Drive
+## 2. Google Drive 原始 Excel
 
 - 建立 Google Cloud service account。
-- 啟用 Google Drive API。
+- 啟用 Google Drive API 與 Google Sheets API。
 - 產生 service account JSON key。
 - 將業績 Excel 分享給 service account email，權限設為檢視者。
 - 將退費 Excel 分享給 service account email，權限設為檢視者。
@@ -22,7 +24,7 @@
 
 Production 與 Preview 至少設定以下變數：
 
-- `DATABASE_URL`
+- `FORMAL_DATA_SPREADSHEET_ID`
 - `DASHBOARD_VIEW_TOKEN`
 - `SYNC_ADMIN_TOKEN`
 - `GOOGLE_DRIVE_SALES_FILE_ID`
@@ -33,14 +35,14 @@ Production 與 Preview 至少設定以下變數：
 
 ## 4. 初次資料搬遷
 
-正式資料庫 schema 建好後，執行一次：
+正式 Google Sheets 分享與環境變數設定好後，執行一次：
 
 ```bash
 npm install
 npm run seed
 ```
 
-這會把 legacy `sales-data.js` 搬進 `dashboard_records`。完成後看板應可讀到原本 2026/01 到 2026/08 的資料。
+這會把 legacy `sales-data.js` 搬進正式 Google Sheets 的 `DashboardRecords`。完成後看板應可讀到原本 2026/01 到 2026/08 的資料，`SyncRuns` 會新增一筆 initial seed 紀錄。
 
 ## 5. 第一次 Drive 預覽
 
@@ -64,15 +66,15 @@ QA 通過後：
 
 - 按「確認更新正式資料」。
 - 確認看板自動重新載入。
-- 確認同步紀錄新增一筆 `published`。
+- 確認 `SyncRuns` 新增一筆 `published`。
 - 抽查 KPI、月份趨勢、排行榜、明細資料是否符合 Excel。
 
 ## 7. 異常處理
 
 若 QA 顯示 `停止發布`：
 
-- 正式資料不會被改動。
-- `sync_runs` 會保留 blocked 紀錄。
+- 正式 Google Sheets 的 `DashboardRecords` 不會更新。
+- `SyncRuns` 會保留 blocked 紀錄。
 - 依照畫面顯示的異常回到 Excel 修正。
 - 修正後重新 preview。
 
@@ -80,6 +82,8 @@ QA 通過後：
 
 - `DASHBOARD_VIEW_TOKEN` 給一般內部查看者。
 - `SYNC_ADMIN_TOKEN` 只給能更新資料的人。
+- 原始 Excel 只給 service account 檢視權限。
+- 正式 Google Sheets 只給 service account 編輯權限。
 - `GOOGLE_SERVICE_ACCOUNT_JSON` 不要貼在聊天、文件或 GitHub issue。
 - 若網站只供公司內部使用，建議搭配 Vercel Password Protection 或 SSO。
 
@@ -94,5 +98,5 @@ QA 通過後：
   ↓
 QA 通過才按「確認更新正式資料」
   ↓
-看板更新，sync_runs 保存紀錄
+看板更新，SyncRuns 保存紀錄
 ```
