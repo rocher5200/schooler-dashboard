@@ -29,4 +29,12 @@ assert.equal(summary.paidDelta, 8000);
 assert.equal(summary.refundDelta, 1000);
 assert.equal(summary.netPaidDelta, 7000);
 
+const emptyRecords = normalizeWorkbooks({
+  salesWorkbook: workbook("資料說明", []),
+  refundsWorkbook: workbook("退費說明", [])
+});
+const emptyQa = runQa(emptyRecords);
+assert.equal(emptyQa.blocking, true);
+assert.equal(emptyQa.issues[0].code, "no_records");
+
 console.log("Normalization smoke test passed.");
