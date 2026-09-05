@@ -33,7 +33,17 @@ Production 與 Preview 至少設定以下變數：
 
 設定後重新部署，因為環境變數只會套用到新部署。
 
-## 4. 初次資料搬遷
+## 4. 部署設定檢查
+
+- 打開正式網址。
+- 輸入 `SYNC_ADMIN_TOKEN`。
+- 按「更新資料」。
+- 按「檢查設定」。
+- 確認所有項目皆顯示「已設定」。
+
+若有缺漏，回 Vercel 補環境變數後重新部署。
+
+## 5. 初次資料搬遷
 
 正式 Google Sheets 分享與環境變數設定好後，執行一次：
 
@@ -44,7 +54,7 @@ npm run seed
 
 這會把 legacy `sales-data.js` 搬進正式 Google Sheets 的 `DashboardRecords`。完成後看板應可讀到原本 2026/01 到 2026/08 的資料，`SyncRuns` 會新增一筆 initial seed 紀錄。
 
-## 5. 第一次 Drive 預覽
+## 6. 第一次 Drive 預覽
 
 - 打開正式網址。
 - 輸入 `SYNC_ADMIN_TOKEN`。
@@ -60,7 +70,7 @@ npm run seed
 
 第一次請先只 preview，不急著 publish。
 
-## 6. 第一次正式發布
+## 7. 第一次正式發布
 
 QA 通過後：
 
@@ -69,7 +79,7 @@ QA 通過後：
 - 確認 `SyncRuns` 新增一筆 `published`。
 - 抽查 KPI、月份趨勢、排行榜、明細資料是否符合 Excel。
 
-## 7. 異常處理
+## 8. 異常處理
 
 若 QA 顯示 `停止發布`：
 
@@ -78,7 +88,7 @@ QA 通過後：
 - 依照畫面顯示的異常回到 Excel 修正。
 - 修正後重新 preview。
 
-## 8. 建議的正式權限
+## 9. 建議的正式權限
 
 - `DASHBOARD_VIEW_TOKEN` 給一般內部查看者。
 - `SYNC_ADMIN_TOKEN` 只給能更新資料的人。
@@ -87,7 +97,7 @@ QA 通過後：
 - `GOOGLE_SERVICE_ACCOUNT_JSON` 不要貼在聊天、文件或 GitHub issue。
 - 若網站只供公司內部使用，建議搭配 Vercel Password Protection 或 SSO。
 
-## 9. 每月例行流程
+## 10. 每月例行流程
 
 ```text
 更新 Google Drive Excel
