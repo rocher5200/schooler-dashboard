@@ -38,7 +38,7 @@ export async function getSyncHistory(limit = 10) {
   `;
 }
 
-export async function recordSyncRun({ status, startedAt, finishedAt, summary, qa, error }) {
+export async function recordSyncRun({ status, startedAt, finishedAt, summary = {}, qa, error }) {
   const summaryText = buildSummaryText(status, summary, qa, error);
   const rows = await sql()`
     insert into sync_runs (
@@ -55,24 +55,53 @@ export async function recordSyncRun({ status, startedAt, finishedAt, summary, qa
 }
 
 export async function replaceChangedMonths(rows, changedMonths) {
-  const database = sql();
-  for (const month of changedMonths) {
-    await database`delete from dashboard_records where month = ${month}`;
-  }
+  const months = [...new Set(changedMonths || [])].sort();
+  if (!months.length) return;
 
-  for (const row of rows.filter((item) => changedMonths.includes(item.month))) {
-    await database`
-      insert into dashboard_records (month, code, course, price, quantity, paid, refunds, source_hash, updated_at)
-      values (${row.month}, ${row.code}, ${row.course}, ${row.price}, ${row.quantity}, ${row.paid}, ${row.refunds}, ${row.sourceHash}, now())
-      on conflict (month, code, course) do update set
-        price = excluded.price,
-        quantity = excluded.quantity,
-        paid = excluded.paid,
-        refunds = excluded.refunds,
-        source_hash = excluded.source_hash,
-        updated_at = now()
-    `;
-  }
+  const payload = rows
+    .filter((item) => months.includes(item.month))
+    .map((row) => ({
+      month: row.month,
+      code: row.code,
+      course: row.course,
+      price: Number(row.price) || 0,
+      quantity: Number(row.quantity) || 0,
+      paid: Number(row.paid) || 0,
+      refunds: Number(row.refunds) || 0,
+      source_hash: row.sourceHash
+    }));
+
+  await sql()`
+    with changed_months as (
+      select jsonb_array_elements_text(${JSON.stringify(months)}::jsonb) as month
+    ), deleted as (
+      delete from dashboard_records existing
+      using changed_months
+      where existing.month = changed_months.month
+      returning existing.month
+    ), incoming as (
+      select * from jsonb_to_recordset(${JSON.stringify(payload)}::jsonb) as row(
+        month text,
+        code text,
+        course text,
+        price integer,
+        quantity integer,
+        paid integer,
+        refunds integer,
+        source_hash text
+      )
+    )
+    insert into dashboard_records (month, code, course, price, quantity, paid, refunds, source_hash, updated_at)
+    select month, code, course, price, quantity, paid, refunds, source_hash, now()
+    from incoming
+    on conflict (month, code, course) do update set
+      price = excluded.price,
+      quantity = excluded.quantity,
+      paid = excluded.paid,
+      refunds = excluded.refunds,
+      source_hash = excluded.source_hash,
+      updated_at = now()
+  `;
 }
 
 function buildSummaryText(status, summary, qa, error) {
