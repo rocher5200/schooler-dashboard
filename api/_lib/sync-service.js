@@ -4,57 +4,83 @@ import { normalizeWorkbooks, runQa } from "./normalize.js";
 
 export async function buildPreview() {
   const startedAt = new Date().toISOString();
-  const [salesWorkbook, refundsWorkbook, currentRows] = await Promise.all([
-    loadDriveWorkbook(process.env.GOOGLE_DRIVE_SALES_FILE_ID),
-    loadDriveWorkbook(process.env.GOOGLE_DRIVE_REFUNDS_FILE_ID),
-    getDashboardRows()
-  ]);
+  try {
+    const [salesWorkbook, refundsWorkbook, currentRows] = await Promise.all([
+      loadDriveWorkbook(process.env.GOOGLE_DRIVE_SALES_FILE_ID),
+      loadDriveWorkbook(process.env.GOOGLE_DRIVE_REFUNDS_FILE_ID),
+      getDashboardRows()
+    ]);
 
-  const incomingRows = normalizeWorkbooks({ salesWorkbook, refundsWorkbook });
-  const summary = compareRows(currentRows, incomingRows);
-  const qa = runQa(incomingRows);
-  const status = qa.blocking ? "blocked" : "previewed";
+    const incomingRows = normalizeWorkbooks({ salesWorkbook, refundsWorkbook });
+    const summary = compareRows(currentRows, incomingRows);
+    const qa = runQa(incomingRows);
+    const status = qa.blocking ? "blocked" : "previewed";
 
-  await recordSyncRun({ status, startedAt, finishedAt: new Date().toISOString(), summary, qa });
+    await safeRecordSyncRun({ status, startedAt, finishedAt: new Date().toISOString(), summary, qa });
 
-  return {
-    startedAt,
-    blocking: qa.blocking,
-    summary,
-    qa
-  };
+    return {
+      startedAt,
+      blocking: qa.blocking,
+      summary,
+      qa
+    };
+  } catch (error) {
+    await safeRecordSyncRun({
+      status: "failed",
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      summary: {},
+      qa: { issues: [] },
+      error: error.message || "同步預覽失敗"
+    });
+    throw error;
+  }
 }
 
 export async function publishLatestDriveData() {
   const startedAt = new Date().toISOString();
-  const [salesWorkbook, refundsWorkbook, currentRows] = await Promise.all([
-    loadDriveWorkbook(process.env.GOOGLE_DRIVE_SALES_FILE_ID),
-    loadDriveWorkbook(process.env.GOOGLE_DRIVE_REFUNDS_FILE_ID),
-    getDashboardRows()
-  ]);
+  try {
+    const [salesWorkbook, refundsWorkbook, currentRows] = await Promise.all([
+      loadDriveWorkbook(process.env.GOOGLE_DRIVE_SALES_FILE_ID),
+      loadDriveWorkbook(process.env.GOOGLE_DRIVE_REFUNDS_FILE_ID),
+      getDashboardRows()
+    ]);
 
-  const incomingRows = normalizeWorkbooks({ salesWorkbook, refundsWorkbook });
-  const summary = compareRows(currentRows, incomingRows);
-  const qa = runQa(incomingRows);
+    const incomingRows = normalizeWorkbooks({ salesWorkbook, refundsWorkbook });
+    const summary = compareRows(currentRows, incomingRows);
+    const qa = runQa(incomingRows);
 
-  if (qa.blocking) {
-    await recordSyncRun({ status: "blocked", startedAt, finishedAt: new Date().toISOString(), summary, qa });
-    const error = new Error("QA 發現重大異常，正式資料未更新");
-    error.statusCode = 422;
-    error.payload = { blocking: true, summary, qa };
+    if (qa.blocking) {
+      await safeRecordSyncRun({ status: "blocked", startedAt, finishedAt: new Date().toISOString(), summary, qa });
+      const error = new Error("QA 發現重大異常，正式資料未更新");
+      error.statusCode = 422;
+      error.payload = { blocking: true, summary, qa };
+      throw error;
+    }
+
+    await replaceChangedMonths(incomingRows, summary.changedMonths);
+    await safeRecordSyncRun({ status: "published", startedAt, finishedAt: new Date().toISOString(), summary, qa });
+
+    return {
+      startedAt,
+      finishedAt: new Date().toISOString(),
+      blocking: false,
+      summary,
+      qa
+    };
+  } catch (error) {
+    if (!error.payload?.blocking) {
+      await safeRecordSyncRun({
+        status: "failed",
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        summary: {},
+        qa: { issues: [] },
+        error: error.message || "同步發布失敗"
+      });
+    }
     throw error;
   }
-
-  await replaceChangedMonths(incomingRows, summary.changedMonths);
-  await recordSyncRun({ status: "published", startedAt, finishedAt: new Date().toISOString(), summary, qa });
-
-  return {
-    startedAt,
-    finishedAt: new Date().toISOString(),
-    blocking: false,
-    summary,
-    qa
-  };
 }
 
 export function compareRows(currentRows, incomingRows) {
@@ -91,6 +117,14 @@ export function compareRows(currentRows, incomingRows) {
     netPaidDelta: incomingTotals.netPaid - currentTotals.netPaid,
     recordCount: incomingRows.length
   };
+}
+
+async function safeRecordSyncRun(payload) {
+  try {
+    await recordSyncRun(payload);
+  } catch (recordError) {
+    console.error("Unable to write sync run record", recordError);
+  }
 }
 
 function totals(rows) {
