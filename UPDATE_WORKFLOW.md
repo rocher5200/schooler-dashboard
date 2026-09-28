@@ -1,10 +1,10 @@
 # Schooler 看板半自動更新規格
 
-當使用者說「重新抓資料」時，依下列固定流程更新看板。
+看板右上角提供「更新資料」按鈕。按下後，由 Google Apps Script 讀取 Drive 最新 Excel，重新整理看板並將資料保存在目前瀏覽器。
 
 ## 資料來源
 
-- Google Drive 資料夾：`https://drive.google.com/drive/folders/1IhAtyZAV-SaQu4TAgI7CAf9Zf1lAVmA2`
+- Google Drive 資料夾：已在私人更新服務中設定，不寫入公開 GitHub。
 - 來源檔案：`菜鳥救星業績統計.xlsx`
 - 不讀取退費統計檔案。
 
@@ -22,10 +22,15 @@
 - 顯示銷售數量、繳費金額與分潤金額。
 - 分潤金額：`銷售數量 × 售價 × 30%`。
 
-## 更新結果
+## 一鍵更新流程
 
-1. 將完整最新資料重新產生為 `sales-data.js`，不與舊資料累加。
-2. 檢查月份、總筆數、總銷售數量、總繳費金額與影音分潤。
-3. 確認 `index.html` 可正常讀取更新後的資料。
-4. 提交並推送到 `https://github.com/rocher5200/schooler-dashboard.git` 的 `main` 分支。
-5. 回覆本次資料月份範圍、筆數與 GitHub 更新結果。
+1. 使用者按下「更新資料」。
+2. 看板呼叫 `dashboard-config.js` 指定的 Google Apps Script Web App。
+3. Google Apps Script 暫時將 Excel 轉換為 Google 試算表並讀取資料。
+4. 暫存的轉換檔案立即移到垃圾桶，原始 Excel 不會被修改。
+5. 看板以完整最新資料取代舊快取，不與舊資料累加。
+6. 看板重新計算月份、銷售數量、繳費金額、排行與影音課程分潤。
+
+Google Apps Script 使用擁有者帳號執行，不開放匿名存取；首次使用需要 Google 授權。
+
+目前更新服務由資料擁有者帳號執行，且部署範圍為「只有我自己」。使用更新按鈕的瀏覽器必須登入該 Google 帳號。

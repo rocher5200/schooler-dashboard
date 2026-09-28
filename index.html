@@ -75,6 +75,26 @@
       color: var(--ink);
     }
     .control input { min-width: 245px; }
+    .refresh-button {
+      min-height: 44px;
+      padding: 0 16px;
+      border: 1px solid var(--green);
+      border-radius: 8px;
+      background: var(--green);
+      color: #fff;
+      font-weight: 800;
+    }
+    .refresh-button:hover { background: #185e3a; }
+    .refresh-button:disabled { cursor: wait; opacity: .68; }
+    .refresh-status {
+      width: 100%;
+      margin: 0;
+      color: var(--muted);
+      font-size: .84rem;
+      text-align: right;
+    }
+    .refresh-status.success { color: var(--green); }
+    .refresh-status.error { color: var(--red); }
     .kpis {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -296,6 +316,8 @@
         <label class="control">搜尋
           <input id="searchBox" type="search" placeholder="輸入課程名稱或培訓代碼">
         </label>
+        <button id="refreshData" class="refresh-button" type="button">更新資料</button>
+        <p id="refreshStatus" class="refresh-status" role="status" aria-live="polite"></p>
       </div>
     </section>
 
@@ -394,16 +416,93 @@
   </main>
 
   <script src="./sales-data.js"></script>
+  <script src="./dashboard-config.js"></script>
   <script>
-    const data = Array.isArray(window.SALES_DATA) ? window.SALES_DATA : [];
+    const CACHE_KEY = "schooler-dashboard-drive-data-v1";
+    const CACHE_META_KEY = "schooler-dashboard-drive-meta-v1";
+    const bundledData = Array.isArray(window.SALES_DATA) ? window.SALES_DATA : [];
+    let data = loadCachedData() || bundledData;
     const monthFilter = document.getElementById("monthFilter");
     const searchBox = document.getElementById("searchBox");
+    const refreshButton = document.getElementById("refreshData");
+    const refreshStatus = document.getElementById("refreshStatus");
     const money = new Intl.NumberFormat("zh-TW", {
       style: "currency",
       currency: "TWD",
       maximumFractionDigits: 0
     });
     const number = new Intl.NumberFormat("zh-TW");
+
+    function loadCachedData() {
+      try {
+        const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
+        return Array.isArray(cached) && cached.length ? cached : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function showCachedStatus() {
+      try {
+        const meta = JSON.parse(localStorage.getItem(CACHE_META_KEY));
+        if (meta?.updatedAt && data !== bundledData) {
+          const updatedAt = new Date(meta.updatedAt).toLocaleString("zh-TW", { hour12: false });
+          refreshStatus.textContent = `上次更新：${updatedAt}`;
+          refreshStatus.className = "refresh-status success";
+        }
+      } catch {}
+    }
+
+    function fetchDriveData() {
+      const endpoint = String(window.SCHOOLER_DATA_ENDPOINT || "").trim();
+      if (!endpoint) return Promise.reject(new Error("Google 資料連線尚未完成設定"));
+
+      return new Promise((resolve, reject) => {
+        const callbackName = `schoolerUpdate_${Date.now()}`;
+        const script = document.createElement("script");
+        const timeout = setTimeout(() => finish(new Error("更新逾時，請稍後再試")), 30000);
+
+        function finish(error, payload) {
+          clearTimeout(timeout);
+          delete window[callbackName];
+          script.remove();
+          error ? reject(error) : resolve(payload);
+        }
+
+        window[callbackName] = (payload) => {
+          if (!payload?.ok) return finish(new Error(payload?.error || "無法讀取 Google Drive 資料"));
+          if (!Array.isArray(payload.rows) || !payload.rows.length) return finish(new Error("Google Drive 沒有可用的業績資料"));
+          finish(null, payload);
+        };
+        script.onerror = () => finish(new Error("無法連線至 Google 資料服務"));
+        script.src = `${endpoint}${endpoint.includes("?") ? "&" : "?"}callback=${encodeURIComponent(callbackName)}&t=${Date.now()}`;
+        document.head.appendChild(script);
+      });
+    }
+
+    async function refreshFromDrive() {
+      refreshButton.disabled = true;
+      refreshButton.textContent = "更新中...";
+      refreshStatus.textContent = "正在讀取 Google Drive 最新資料";
+      refreshStatus.className = "refresh-status";
+      try {
+        const payload = await fetchDriveData();
+        data = payload.rows;
+        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        localStorage.setItem(CACHE_META_KEY, JSON.stringify({ updatedAt: payload.updatedAt || new Date().toISOString() }));
+        searchBox.value = "";
+        renderMonths();
+        render();
+        refreshStatus.textContent = `更新完成：${number.format(data.length)} 筆資料`;
+        refreshStatus.className = "refresh-status success";
+      } catch (error) {
+        refreshStatus.textContent = `更新失敗：${error.message}`;
+        refreshStatus.className = "refresh-status error";
+      } finally {
+        refreshButton.disabled = false;
+        refreshButton.textContent = "更新資料";
+      }
+    }
 
     function byFilters(row) {
       const monthOk = monthFilter.value === "all" || row.month === monthFilter.value;
@@ -550,8 +649,10 @@
 
     renderMonths();
     render();
+    showCachedStatus();
     monthFilter.addEventListener("change", render);
     searchBox.addEventListener("input", render);
+    refreshButton.addEventListener("click", refreshFromDrive);
   </script>
 </body>
 </html>
