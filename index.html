@@ -75,22 +75,6 @@
       color: var(--ink);
     }
     .control input { min-width: 245px; }
-    .import-control { display: flex; align-items: center; align-self: stretch; }
-    .import-button {
-      min-height: 44px;
-      padding: 0 16px;
-      border: 1px solid var(--green);
-      border-radius: 8px;
-      background: var(--green);
-      color: white;
-      font-weight: 800;
-    }
-    .import-button:hover { background: #145c47; }
-    .import-button:focus-visible { outline: 3px solid rgba(40, 122, 72, .2); outline-offset: 2px; }
-    .import-button:disabled { cursor: wait; opacity: .7; }
-    .data-source { margin: 9px 0 0; color: var(--muted); font-size: .84rem; line-height: 1.5; }
-    .data-source.error { color: var(--red); }
-    .data-source.success { color: var(--green); }
     .kpis {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -304,7 +288,6 @@
       <div>
         <p class="eyebrow">Course Revenue Dashboard</p>
         <h1>Schooler績效看板</h1>
-        <p id="dataSource" class="data-source">目前使用看板內建資料</p>
       </div>
       <div class="controls" aria-label="篩選工具">
         <label class="control">月份
@@ -313,10 +296,6 @@
         <label class="control">搜尋
           <input id="searchBox" type="search" placeholder="輸入課程名稱或培訓代碼">
         </label>
-        <div class="import-control">
-          <input id="excelFile" type="file" accept=".xlsx,.xls" hidden>
-          <button id="importButton" class="import-button" type="button">匯入業績 Excel</button>
-        </div>
       </div>
     </section>
 
@@ -415,95 +394,16 @@
   </main>
 
   <script src="./sales-data.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
-    const STORAGE_KEY = "schooler-dashboard-sales-data-v1";
-    const STORAGE_META_KEY = "schooler-dashboard-sales-meta-v1";
-    const bundledData = Array.isArray(window.SALES_DATA) ? window.SALES_DATA : [];
-    let data = loadSavedData() || bundledData;
+    const data = Array.isArray(window.SALES_DATA) ? window.SALES_DATA : [];
     const monthFilter = document.getElementById("monthFilter");
     const searchBox = document.getElementById("searchBox");
-    const excelFile = document.getElementById("excelFile");
-    const importButton = document.getElementById("importButton");
-    const dataSource = document.getElementById("dataSource");
     const money = new Intl.NumberFormat("zh-TW", {
       style: "currency",
       currency: "TWD",
       maximumFractionDigits: 0
     });
     const number = new Intl.NumberFormat("zh-TW");
-
-    function loadSavedData() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        return Array.isArray(saved) && saved.length ? saved : null;
-      } catch {
-        return null;
-      }
-    }
-
-    function updateDataSource() {
-      try {
-        const meta = JSON.parse(localStorage.getItem(STORAGE_META_KEY));
-        if (meta?.fileName && meta?.updatedAt && data !== bundledData) {
-          const updatedAt = new Date(meta.updatedAt).toLocaleString("zh-TW", { hour12: false });
-          dataSource.textContent = `目前資料：${meta.fileName}，匯入時間 ${updatedAt}`;
-          dataSource.className = "data-source success";
-          return;
-        }
-      } catch {}
-      dataSource.textContent = "目前使用看板內建資料";
-      dataSource.className = "data-source";
-    }
-
-    function normalizeHeader(value) {
-      return String(value ?? "").trim().replace(/\s+/g, "");
-    }
-
-    function parseWorkbook(workbook) {
-      const rows = [];
-      const required = ["培訓代碼", "培訓課程", "售價", "銷售數量", "繳費金額"];
-      const monthSheets = workbook.SheetNames.filter((name) => /^\d{6}$/.test(name));
-      if (!monthSheets.length) throw new Error("找不到 YYYYMM 格式的月份分頁");
-
-      monthSheets.forEach((sheetName) => {
-        const matrix = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: "" });
-        const headerIndex = matrix.findIndex((row) => required.every((field) => row.map(normalizeHeader).includes(field)));
-        if (headerIndex < 0) return;
-        const headers = matrix[headerIndex].map(normalizeHeader);
-        const column = Object.fromEntries(required.map((field) => [field, headers.indexOf(field)]));
-        const month = `${sheetName.slice(0, 4)}-${sheetName.slice(4, 6)}`;
-
-        matrix.slice(headerIndex + 1).forEach((row) => {
-          const code = String(row[column["培訓代碼"]] ?? "").trim();
-          const course = String(row[column["培訓課程"]] ?? "").trim();
-          if (!code && !course) return;
-          rows.push({
-            month,
-            code,
-            course,
-            price: Number(row[column["售價"]]) || 0,
-            quantity: Number(row[column["銷售數量"]]) || 0,
-            paid: Number(row[column["繳費金額"]]) || 0
-          });
-        });
-      });
-
-      if (!rows.length) throw new Error("月份分頁中沒有可匯入的業績資料");
-      return rows;
-    }
-
-    async function importExcel(file) {
-      if (!window.XLSX) throw new Error("Excel 讀取工具尚未載入，請確認網路連線後再試一次");
-      const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
-      const nextData = parseWorkbook(workbook);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextData));
-      localStorage.setItem(STORAGE_META_KEY, JSON.stringify({ fileName: file.name, updatedAt: new Date().toISOString() }));
-      data = nextData;
-      renderMonths(true);
-      render();
-      updateDataSource();
-    }
 
     function byFilters(row) {
       const monthOk = monthFilter.value === "all" || row.month === monthFilter.value;
@@ -545,11 +445,9 @@
       });
     }
 
-    function renderMonths(reset = false) {
-      const previous = reset ? "all" : monthFilter.value;
+    function renderMonths() {
       const months = [...new Set(data.map((row) => row.month))].sort();
       monthFilter.innerHTML = '<option value="all">全部月份</option>' + months.map((m) => `<option value="${m}">${m}</option>`).join("");
-      monthFilter.value = months.includes(previous) ? previous : "all";
     }
 
     function render() {
@@ -652,28 +550,8 @@
 
     renderMonths();
     render();
-    updateDataSource();
     monthFilter.addEventListener("change", render);
     searchBox.addEventListener("input", render);
-    importButton.addEventListener("click", () => excelFile.click());
-    excelFile.addEventListener("change", async () => {
-      const file = excelFile.files?.[0];
-      if (!file) return;
-      importButton.disabled = true;
-      importButton.textContent = "匯入中...";
-      dataSource.textContent = "正在檢查並匯入資料";
-      dataSource.className = "data-source";
-      try {
-        await importExcel(file);
-      } catch (error) {
-        dataSource.textContent = `匯入失敗：${error.message}`;
-        dataSource.className = "data-source error";
-      } finally {
-        importButton.disabled = false;
-        importButton.textContent = "匯入業績 Excel";
-        excelFile.value = "";
-      }
-    });
   </script>
 </body>
 </html>
