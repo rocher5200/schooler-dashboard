@@ -25,7 +25,7 @@
 ## 一鍵更新流程
 
 1. 使用者按下「更新資料」。
-2. 看板呼叫 `dashboard-config.js` 指定的 Google Apps Script Web App。
+2. 看板先嘗試呼叫 `dashboard-config.js` 指定的 Google Apps Script Web App；若尚未登入，會開啟 Google 授權視窗並自動重試。
 3. Google Apps Script 暫時將 Excel 轉換為 Google 試算表並讀取資料。
 4. 暫存的轉換檔案立即移到垃圾桶，原始 Excel 不會被修改。
 5. 看板以完整最新資料取代舊快取，不與舊資料累加。
