@@ -138,6 +138,41 @@
       margin-bottom: 18px;
       padding: 18px;
     }
+    .subscription-section { margin-bottom: 18px; }
+    .subscription-heading { margin-bottom: 12px; }
+    .subscription-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .subscription-card { padding: 18px; }
+    .subscription-card h3 {
+      margin: 0 0 16px;
+      font-size: 1rem;
+    }
+    .subscription-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin: 0;
+    }
+    .subscription-card.amount-only .subscription-metrics { grid-template-columns: 1fr; }
+    .subscription-metrics div {
+      min-width: 0;
+      padding-top: 12px;
+      border-top: 1px solid #e2dacc;
+    }
+    .subscription-metrics dt {
+      color: var(--muted);
+      font-size: .84rem;
+      font-weight: 750;
+    }
+    .subscription-metrics dd {
+      margin: 6px 0 0;
+      font-size: clamp(1.2rem, 2vw, 1.7rem);
+      font-weight: 900;
+      overflow-wrap: anywhere;
+    }
     .panel-heading {
       display: flex;
       align-items: center;
@@ -289,13 +324,14 @@
     @media (max-width: 1080px) {
       .topbar { align-items: stretch; flex-direction: column; }
       .controls { justify-content: start; }
-      .kpis, .layout { grid-template-columns: 1fr 1fr; }
+      .kpis, .layout, .subscription-grid { grid-template-columns: 1fr 1fr; }
       .video-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 720px) {
       .shell { padding: 16px; }
-      .kpis, .layout { grid-template-columns: 1fr; }
+      .kpis, .layout, .subscription-grid { grid-template-columns: 1fr; }
       .video-grid { grid-template-columns: 1fr; }
+      .subscription-metrics { grid-template-columns: 1fr 1fr; }
       .control, .control select, .control input { width: 100%; min-width: 0; }
       .rank-row { grid-template-columns: 36px 1fr; }
       .money { grid-column: 2; text-align: left; }
@@ -338,6 +374,50 @@
         <span class="label">最高繳費課程</span>
         <strong id="topCourse"></strong>
       </article>
+    </section>
+
+    <section class="subscription-section" aria-label="方案統計">
+      <div class="panel-heading subscription-heading">
+        <h2>方案統計</h2>
+        <span class="status">依培訓代碼歸類</span>
+      </div>
+      <div class="subscription-grid">
+        <article class="card subscription-card">
+          <h3>2年訂閱（Basic）</h3>
+          <dl class="subscription-metrics">
+            <div>
+              <dt>銷售數量</dt>
+              <dd id="basicQty"></dd>
+            </div>
+            <div>
+              <dt>繳費金額</dt>
+              <dd id="basicPaid"></dd>
+            </div>
+          </dl>
+        </article>
+        <article class="card subscription-card">
+          <h3>Schooler-Plus</h3>
+          <dl class="subscription-metrics">
+            <div>
+              <dt>銷售數量</dt>
+              <dd id="plusQty"></dd>
+            </div>
+            <div>
+              <dt>繳費金額</dt>
+              <dd id="plusPaid"></dd>
+            </div>
+          </dl>
+        </article>
+        <article class="card subscription-card amount-only">
+          <h3>非訂閱直播課程</h3>
+          <dl class="subscription-metrics">
+            <div>
+              <dt>繳費金額</dt>
+              <dd id="livePaid"></dd>
+            </div>
+          </dl>
+        </article>
+      </div>
     </section>
 
     <section class="card video-panel" aria-label="影音課程銷售">
@@ -418,14 +498,18 @@
   <script src="./sales-data.js"></script>
   <script src="./dashboard-config.js"></script>
   <script>
-    const CACHE_KEY = "schooler-dashboard-drive-data-v1";
-    const CACHE_META_KEY = "schooler-dashboard-drive-meta-v1";
+    const CACHE_KEY = "schooler-dashboard-drive-data-v2";
+    const CACHE_META_KEY = "schooler-dashboard-drive-meta-v2";
     const bundledData = Array.isArray(window.SALES_DATA) ? window.SALES_DATA : [];
     let data = loadCachedData() || bundledData;
     const monthFilter = document.getElementById("monthFilter");
     const searchBox = document.getElementById("searchBox");
     const refreshButton = document.getElementById("refreshData");
     const refreshStatus = document.getElementById("refreshStatus");
+    const SUBSCRIPTION_GROUPS = {
+      basic: new Set(["5319", "5534", "6142"]),
+      plus: new Set(["6050", "6051", "6143", "6144", "6145", "6171", "6172", "6180"])
+    };
     const money = new Intl.NumberFormat("zh-TW", {
       style: "currency",
       currency: "TWD",
@@ -594,10 +678,30 @@
       document.getElementById("activeCourses").textContent = `${number.format(positive.length)} 門`;
       document.getElementById("topCourse").textContent = top ? top.course : "無資料";
 
+      renderSubscriptions(rows);
       renderVideoCourses(rows);
       renderTrend(rows);
       renderRanking(positive);
       renderDetails(rows);
+    }
+
+    function renderSubscriptions(rows) {
+      const summarize = (codes) => rows
+        .filter((row) => codes.has(String(row.code)))
+        .reduce((total, row) => ({
+          quantity: total.quantity + (Number(row.quantity) || 0),
+          paid: total.paid + (Number(row.paid) || 0)
+        }), { quantity: 0, paid: 0 });
+      const basic = summarize(SUBSCRIPTION_GROUPS.basic);
+      const plus = summarize(SUBSCRIPTION_GROUPS.plus);
+      const totalPaid = rows.reduce((sum, row) => sum + (Number(row.paid) || 0), 0);
+      const livePaid = totalPaid - basic.paid - plus.paid;
+
+      document.getElementById("basicQty").textContent = `${number.format(basic.quantity)} 件`;
+      document.getElementById("basicPaid").textContent = money.format(basic.paid);
+      document.getElementById("plusQty").textContent = `${number.format(plus.quantity)} 件`;
+      document.getElementById("plusPaid").textContent = money.format(plus.paid);
+      document.getElementById("livePaid").textContent = money.format(livePaid);
     }
 
     function renderVideoCourses(rows) {
